@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JStudy — SPA Profesional</title>
+<meta name="description" content="SPA educativa profesional con flashcards Leitner, quiz multiformato configurado, Pomodoro personalizable con campana, notas con buscador/ordenamiento, TTS integrado, importación .txt/.md y estadísticas locales.">
+<meta property="og:title" content="JStudy">
+<meta property="og:description" content="Flashcards con repetición espaciada, quiz configurado, Pomodoro con campana, notas con buscador, TTS, importación .txt/.md.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;800&family=Space+Grotesk:wght@300;700&display=swap" rel="stylesheet">
+<style>
+:root{
+--primary:#00f0ff;--primary-deep:#00c0cc;
+--bg:#040812;--surface:#0b1325;--surface-2:#0f1a35;--glass:rgba(11,19,37,0.55);
+--text:#f0f6fc;--text-muted:#8a9bb8;
+--border-radius-md:16px;--transition:all .25s cubic-bezier(.4,0,.2,1);
+--success:#00ffaa;--warn:#ffaa00;--danger:#ff5555;
+--font-main:'Inter',system-ui,sans-serif;
+--font-display:'Space Grotesk',sans-serif;
+}
+@media(prefers-color-scheme: light){
+:root{--bg:#f6f9fc;--surface:#fff;--surface-2:#eef3f8;--text:#0a1628;--text-muted:#556677;--glass:rgba(255,255,255,0.6);}
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-main);background:linear-gradient(180deg,var(--bg) 0%,#060b14 100%);color:var(--text);line-height:1.55;min-height:100vh}
+h1,h2,h3{font-family:var(--font-display);line-height:1.15;letter-spacing:-0.02em}
+
+/* TWO COLUMN LAYOUT */
+.layout-container{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+@media(max-width:1024px){.layout-container{grid-template-columns:1fr}}
+
+/* SIDEBAR */
+.sidebar{position:sticky;top:0;height:100vh;background:rgba(4,8,18,0.78);backdrop-filter:blur(20px) saturate(1.5);border-right:1px solid rgba(255,255,255,.06);padding:2rem 1.25rem;display:flex;flex-direction:column;overflow-y:auto;z-index:100;transition:transform .35s ease}
+@media(max-width:1024px){.sidebar{position:fixed;inset:0;z-index:200;width:280px;background:rgba(4,8,18,0.92);transform:translateX(-100%);overflow-y:auto}.sidebar.open{transform:translateX(0)}}
+.sidebar-header{display:flex;align-items:center;gap:.75rem;margin-bottom:2.5rem}
+.logo{font-family:var(--font-display);font-weight:700;font-size:1.2rem;color:var(--primary);letter-spacing:-0.03em;text-decoration:none;text-shadow:0 0 20px rgba(0,240,255,.25);display:flex;align-items:center;gap:.6rem}
+.logo-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-deep));display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:.8rem;color:#060b14;flex-shrink:0}
+.sidebar-nav{list-style:none;padding:0;margin-bottom:auto;flex:1}
+.sidebar-nav li{margin-bottom:.3rem}
+.sidebar-nav a{display:flex;align-items:center;gap:.7rem;padding:.6rem .75rem;border-radius:10px;color:var(--text-muted);text-decoration:none;font-weight:500;font-size:.9rem;transition:var(--transition);border:1px solid transparent}
+.sidebar-nav a:hover,.sidebar-nav a:focus-visible{color:var(--primary);background:rgba(0,240,255,.06);border-color:rgba(0,240,255,.1);outline:none;box-shadow:0 0 12px rgba(0,240,255,.1)}
+.sidebar-nav a.active{background:rgba(0,240,255,.08);border-color:rgba(0,240,255,.2);color:var(--primary);font-weight:700;box-shadow:0 0 10px rgba(0,240,255,.1)}
+.sidebar-footer{padding-top:1.5rem;border-top:1px solid rgba(255,255,255,.06);font-size:.8rem;color:var(--text-muted);line-height:1.4}
+.sidebar-footer p{margin:.15rem 0;font-weight:700;color:var(--primary);font-size:.85rem}
+
+/* MAIN */
+.main-content{padding:2rem 2.5rem;max-width:1200px;margin:0 auto}
+.hero{text-align:center;padding:4rem 0}
+.hero h1{font-size:clamp(2.5rem,6vw,5rem);margin-bottom:1rem;background:linear-gradient(135deg,var(--primary),#aaccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:1.15rem;color:var(--text-muted);max-width:640px;margin:0 auto 2rem}
+
+/* TABS */
+.tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2rem;justify-content:center}
+.tab-btn{padding:.6rem 1.2rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--text-muted);cursor:pointer;font-family:inherit;font-weight:600;transition:var(--transition);font-size:.85rem}
+.tab-btn.active,.tab-btn:focus-visible{background:linear-gradient(135deg,var(--primary),var(--primary-deep));color:#060b14;border-color:var(--primary);box-shadow:0 0 15px rgba(0,240,255,.3);outline:none}
+.panel{display:none;animation:fadeIn .4s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* GRID */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+
+/* CARDS */
+.card{background:linear-gradient(145deg,rgba(11,19,37,0.92),rgba(15,26,53,0.92));border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:1.75rem;transition:var(--transition);backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,240,255,.05)}
+.card:hover,.card:focus-within{transform:translateY(-3px);border-color:rgba(0,240,255,.35);box-shadow:0 20px 50px rgba(0,240,255,.1)}
+.card h3{font-size:1.1rem;margin-bottom:.5rem;color:var(--primary)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:999px;background:linear-gradient(135deg,var(--primary),var(--primary-deep));color:#060b14;font-weight:800;text-decoration:none;border:none;cursor:pointer;transition:var(--transition);box-shadow:0 8px 24px rgba(0,240,255,.18);font-size:.9rem}
+.btn:hover,.btn:focus-visible{transform:translateY(-2px);box-shadow:0 16px 40px rgba(0,240,255,.35);outline:none}
+.btn-secondary{background:linear-gradient(135deg,rgba(15,26,53,0.9),rgba(11,19,37,0.9));color:var(--text);border:1px solid rgba(255,255,255,.12);box-shadow:0 2px 12px rgba(0,240,255,.05)}
+.btn-secondary:hover,.btn-secondary:focus-visible{box-shadow:0 6px 24px rgba(0,240,255,.15);outline:none}
+
+/* INPUTS */
+textarea,input,select{font-family:inherit;background:rgba(255,255,255,.05);color:var(--text);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:.75rem 1rem;width:100%;margin-top:.4rem;font-size:.95rem;transition:var(--transition)}
+textarea:focus,input:focus,select:focus{outline:none;border-color:rgba(0,240,255,.6);box-shadow:0 0 0 4px rgba(0,240,255,.12)}
+label{font-weight:600;font-size:.85rem;display:block;margin-top:.75rem;color:var(--text-muted)}
+
+/* TABLES */
+.table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:.9rem}
+.table th,.table td{padding:.75rem .75rem;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.table th{font-weight:700;color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em}
+
+/* FLASHCARDS 3D */
+.flash{position:relative;perspective:1000px;min-height:240px;cursor:pointer}
+.flash-inner{position:relative;width:100%;height:100%;transition:transform .65s cubic-bezier(.4,0,.2,1);transform-style:preserve-3d}
+.flash.flipped .flash-inner{transform:rotateY(180deg)}
+.flash-front,.flash-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:14px;padding:2rem;background:linear-gradient(145deg,rgba(11,19,37,0.92),rgba(15,26,53,0.92));border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 6px 24px rgba(0,240,255,.06)}
+.flash-back{transform:rotateY(180deg);background:linear-gradient(145deg,rgba(15,26,53,0.95),rgba(11,19,37,0.95))}
+
+/* PROGRESS */
+.progress-bar{height:12px;background:rgba(255,255,255,.06);border-radius:999px;overflow:hidden;margin-top:1rem}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--primary),var(--primary-deep));transition:width .5s ease}
+
+/* TOAST */
+.toast-container{position:fixed;top:1.25rem;right:1.25rem;z-index:1200;display:flex;flex-direction:column;gap:.75rem;pointer-events:none}
+.toast{pointer-events:auto;background:rgba(11,19,37,0.92);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:1rem 1.25rem;color:var(--text);font-weight:600;box-shadow:0 12px 40px rgba(0,0,0,.55),0 0 0 1px rgba(0,240,255,.08);animation:slideIn .35s ease;min-width:260px;max-width:400px;transition:opacity .3s ease}
+.toast.success{border-color:rgba(0,255,170,.35);color:#aaffaa}
+.toast.warn{border-color:rgba(255,170,0,.35);color:#ffcc66}
+.toast.error{border-color:rgba(255,85,85,.35);color:#ff9999}
+@keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:4rem 1.5rem;color:var(--text-muted);animation:fadeIn .5s ease}
+.empty-state h3{font-size:1.2rem;margin-bottom:.5rem;color:var(--text)}
+
+/* WELCOME */
+.welcome-overlay{position:fixed;inset:0;z-index:4000;background:rgba(6,11,20,0.85);backdrop-filter:blur(28px) saturate(1.4);display:flex;align-items:center;justify-content:center;animation:fadeIn .5s ease;transition:opacity .45s ease}
+.welcome-overlay.hidden{opacity:0;pointer-events:none;display:none!important}
+.welcome-card{background:linear-gradient(145deg,rgba(11,19,37,0.96),rgba(15,26,53,0.96));border:1px solid rgba(255,255,255,.1);border-radius:24px;padding:3.5rem 3rem;max-width:540px;width:92%;text-align:center;box-shadow:0 30px 80px rgba(0,240,255,.15),0 0 0 1px rgba(0,240,255,.1);animation:slideUp .7s ease}
+@keyframes slideUp{from{transform:translateY(24px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* SPOTLIGHT */
+.spotlight-overlay{position:fixed;inset:0;z-index:3500;background:transparent;pointer-events:none;transition:background .35s ease}
+.spotlight-rect{position:fixed;z-index:3499;pointer-events:none;border:2px solid rgba(0,240,255,.6);border-radius:16px;box-shadow:0 0 0 9999px rgba(4,8,18,0.82),0 0 40px rgba(0,240,255,.15);transition:all .35s cubic-bezier(.4,0,.2,1)}
+
+/* BUBBLE */
+.tour-bubble{position:fixed;z-index:3600;background:linear-gradient(145deg,rgba(11,19,37,0.98),rgba(15,26,53,0.98));border:1px solid rgba(0,240,255,.3);border-radius:18px;padding:1.5rem;max-width:360px;box-shadow:0 25px 60px rgba(0,240,255,.28),0 0 0 1px rgba(0,240,255,.2);animation:floatBubble 3s ease infinite;transition:top .35s ease,left .35s ease,transform .35s ease;will-change:top,left,transform}
+.tour-bubble h4{margin-bottom:.35rem;color:var(--primary);font-size:1.1rem;font-family:var(--font-display)}
+.tour-bubble p{font-size:.92rem;color:var(--text-muted);line-height:1.5}
+.tour-bubble .tour-nav{margin-top:1.25rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.tour-bubble .tour-nav button{padding:.35rem .85rem;font-size:.78rem;font-weight:700;border-radius:999px;border:none;background:linear-gradient(135deg,var(--primary-deep),var(--primary-deep));color:#060b14;cursor:pointer;transition:var(--transition);box-shadow:0 4px 16px rgba(0,240,255,.2)}
+.tour-bubble .tour-nav button:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,240,255,.35)}
+.tour-bubble .tour-nav button:disabled{opacity:.35;cursor:default;box-shadow:none}
+.tour-bubble .tour-nav span{font-size:.8rem;color:var(--text-muted);font-weight:600;letter-spacing:.02em;min-width:80px;text-align:center}
+.tour-click{display:none}
+.tour-exit{position:fixed;top:1.25rem;right:1.5rem;z-index:4100;padding:.55rem 1.1rem;border-radius:999px;background:rgba(0,240,255,.1);border:1px solid rgba(0,240,255,.25);color:var(--primary);font-weight:700;cursor:pointer;backdrop-filter:blur(10px);font-size:.85rem;transition:var(--transition);box-shadow:0 6px 24px rgba(0,240,255,.12)}
+.tour-exit:hover{background:rgba(0,240,255,.22);box-shadow:0 8px 32px rgba(0,240,255,.25);outline:none}
+@keyframes floatBubble{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+
+/* DRAG DROP */
+.drag-zone{border:2px dashed rgba(0,240,255,.25);border-radius:14px;padding:2rem;text-align:center;color:var(--text-muted);transition:var(--transition);background:rgba(0,240,255,.02);cursor:pointer}
+.drag-zone.dragover{border-color:var(--primary);background:rgba(0,240,255,.08);color:var(--primary)}
+</style>
+</head>
+<body>
+<!-- Welcome -->
+<div id="welcomeOverlay" class="welcome-overlay" role="dialog" aria-modal="true" aria-label="Bienvenida" aria-describedby="welcomeDesc">
+  <div class="welcome-card">
+    <h2 style="font-size:2.2rem;margin-bottom:.5rem;color:var(--primary);font-family:var(--font-display);">¡Bienvenido a Estudio Pro!</h2>
+    <p id="welcomeDesc" style="margin-bottom:2rem;color:var(--text-muted);line-height:1.6;">Tu aplicación inteligente para estudiar con flashcards, quizzes, Pomodoro, notas y resúmenes. Elige cómo empezar.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <button onclick="startTour()" class="btn" aria-label="Ver guía rápida">Ver guía rápida</button>
+      <button onclick="skipWelcome()" class="btn btn-secondary" aria-label="Ir por mi cuenta">Ir por mi cuenta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Spotlight -->
+<div id="spotlightOverlay" class="spotlight-overlay" style="display:none;"></div>
+
+<div class="layout-container" role="region" aria-label="Aplicación Estudio Pro">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Navegación principal" role="navigation">
+    <div class="sidebar-header">
+      <a href="#" class="logo" aria-label="Inicio Estudio Pro" style="flex:1;">
+        <span class="logo-icon">EP</span> Estudio Pro
+      </a>
+      <button onclick="restartTour()" class="btn btn-secondary" style="padding:.35rem .85rem;font-size:.75rem;font-weight:700;" aria-label="Reiniciar guía interactiva" title="Reiniciar guía interactiva">Guía</button>
+    </div>
+    <nav aria-label="Secciones principales">
+      <ul class="sidebar-nav">
+        <li><a href="#" onclick="showTab('mazos');return false;" aria-label="Sección Mazos" id="nav-mazos"><span aria-hidden="true">📚</span> Mazos</a></li>
+        <li><a href="#" onclick="showTab('quiz');return false;" aria-label="Sección Quiz" id="nav-quiz"><span aria-hidden="true">❓</span> Quiz</a></li>
+        <li><a href="#" onclick="showTab('pomodoro');return false;" aria-label="Sección Pomodoro" id="nav-pomodoro"><span aria-hidden="true">⏱️</span> Pomodoro</a></li>
+        <li><a href="#" onclick="showTab('notas');return false;" aria-label="Sección Notas" id="nav-notas"><span aria-hidden="true">✏️</span> Notas</a></li>
+        <li><a href="#" onclick="showTab('resumen');return false;" aria-label="Sección Resumen" id="nav-resumen"><span aria-hidden="true">🤖</span> IA</a></li>
+        <li><a href="#" onclick="showTab('progreso');return false;" aria-label="Sección Progreso" id="nav-progreso"><span aria-hidden="true">📊</span> Progreso</a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer" aria-label="Estado del usuario">
+      <p id="streak-sidebar" aria-live="polite">Racha: 0 días</p>
+      <p id="minutes-sidebar" aria-live="polite">Hoy: 0 min</p>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content" role="main">
+    <section class="hero" aria-label="Introducción">
+      <h1>Estudio Pro</h1>
+      <p>SPA profesional con flashcards Leitner, quiz multiformato configurado, Pomodoro personalizable con campana, notas con buscador, resúmenes con IA, TTS integrado, importación .txt/.md y estadísticas locales.</p>
+    </section>
+
+    <div class="tabs" id="mainTabsNav" role="tablist" aria-label="Secciones de estudio">
+      <button class="tab-btn active" onclick="showTab('mazos')" role="tab" aria-selected="true" aria-controls="panel-mazos">Mazos & Flashcards</button>
+      <button class="tab-btn" onclick="showTab('quiz')" role="tab" aria-selected="false" aria-controls="panel-quiz">Quiz Interactivo</button>
+      <button class="tab-btn" onclick="showTab('pomodoro')" role="tab" aria-selected="false" aria-controls="panel-pomodoro">Pomodoro</button>
+      <button class="tab-btn" onclick="showTab('notas')" role="tab" aria-selected="false" aria-controls="panel-notas">Notas Rápidas</button>
+      <button class="tab-btn" onclick="showTab('resumen')" role="tab" aria-selected="false" aria-controls="panel-resumen">Resumidor / IA</button>
+      <button class="tab-btn" onclick="showTab('progreso')" role="tab" aria-selected="false" aria-controls="panel-progreso">Dashboard</button>
+    </div>
+
+    <!-- PANEL MAZOS -->
+    <div id="panel-mazos" class="panel active" role="tabpanel" aria-labelledby="nav-mazos">
+      <h2>Mazos & Flashcards</h2>
+      <div class="box" id="deckFormBox" style="margin-bottom:1rem;">
+        <label for="deckName">Nombre del mazo</label>
+        <input id="deckName" placeholder="Ej: Programación" />
+        <label for="cardFront">Pregunta / Frente</label>
+        <textarea id="cardFront" rows="2" placeholder="Pregunta..."></textarea>
+        <label for="cardBack">Respuesta / Reverso</label>
+        <textarea id="cardBack" rows="2" placeholder="Respuesta..."></textarea>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn" onclick="addCard()">Agregar tarjeta</button>
+          <button class="btn btn-secondary" onclick="exportJSON()">Exportar JSON</button>
+          <button class="btn btn-secondary" onclick="importJSON()">Importar JSON</button>
+          <button class="btn btn-secondary" onclick="exportCSV()">Exportar CSV</button>
+        </div>
+      </div>
+      <div id="deckDisplay" style="margin-top:1rem;"></div>
+      <div id="studyArea" style="margin-top:1.5rem;" aria-label="Área de estudio"></div>
+    </div>
+
+    <!-- PANEL QUIZ -->
+    <div id="panel-quiz" class="panel" role="tabpanel" aria-labelledby="nav-quiz">
+      <h2>Quiz Interactivo</h2>
+      <div class="box" id="quizConfigBox" style="margin-bottom:1rem;">
+        <h3 style="font-size:1rem;margin-bottom:.5rem;color:var(--text);">Configuración del Quiz</h3>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;">
+          <label for="quizDeckSelect" style="margin-top:0;">Mazo:</label>
+          <select id="quizDeckSelect" aria-label="Seleccionar mazo para quiz" onchange="updateQuizCountOptions()"></select>
+          <label for="quizCount" style="margin-top:0;">Preguntas:</label>
+          <select id="quizCount" aria-label="Cantidad de preguntas del quiz"></select>
+          <label for="quizDifficultySelect" style="margin-top:0;">Dificultad:</label>
+          <select id="quizDifficultySelect" aria-label="Nivel de dificultad del quiz">
+            <option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option>
+          </select>
+        </div>
+      </div>
+      <div class="box" id="quizBox" style="margin-bottom:1rem;">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn" onclick="triggerQuiz('multiple')">Opción Múltiple</button>
+          <button class="btn btn-secondary" onclick="triggerQuiz('true_false')">Verdadero / Falso</button>
+          <button class="btn btn-secondary" onclick="triggerQuiz('short_answer')">Respuesta Corta</button>
+        </div>
+      </div>
+      <div id="quizArea" aria-live="polite"></div>
+      <div id="quizResult" style="margin-top:1rem;"></div>
+    </div>
+
+    <!-- PANEL POMODORO -->
+    <div id="panel-pomodoro" class="panel" role="tabpanel" aria-labelledby="nav-pomodoro">
+      <h2>Pomodoro</h2>
+      <div class="box" id="pomodoroConfigBox" style="margin-bottom:1rem;">
+        <h3 style="font-size:1rem;margin-bottom:.5rem;color:var(--text);">Configuración</h3>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+          <label for="workMin" style="margin-top:0;font-size:.8rem;">Trabajo (min):</label>
+          <input id="workMin" type="number" min="1" max="120" value="25" style="width:80px;" aria-label="Minutos de trabajo" />
+          <label for="shortMin" style="margin-top:0;font-size:.8rem;">Descanso (min):</label>
+          <input id="shortMin" type="number" min="1" max="30" value="5" style="width:80px;" aria-label="Minutos de descanso corto" />
+          <label for="longMin" style="margin-top:0;font-size:.8rem;">Descanso largo (min):</label>
+          <input id="longMin" type="number" min="1" max="60" value="15" style="width:80px;" aria-label="Minutos de descanso largo" />
+          <label for="longInterval" style="margin-top:0;font-size:.8rem;">Sesiones antes largo:</label>
+          <input id="longInterval" type="number" min="1" max="10" value="4" style="width:60px;" aria-label="Sesiones antes de descanso largo" />
+        </div>
+        <button onclick="applyPomodoroConfig()" class="btn btn-secondary" style="margin-top:.75rem;font-size:.85rem;">Aplicar configuración</button>
+      </div>
+      <div class="box" id="pomodoroBox" style="text-align:center;">
+        <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:.75rem;">
+          <button class="btn btn-secondary" onclick="setMode(workMinValue())">Trabajo</button>
+          <button class="btn btn-secondary" onclick="setMode(shortMinValue())">Descanso</button>
+          <button class="btn btn-secondary" onclick="setMode(longMinValue())">Descanso Largo</button>
+        </div>
+        <div class="timer-display" id="timer" aria-live="polite">25:00</div>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;justify-content:center;">
+          <button class="btn" onclick="startTimer()">Iniciar</button>
+          <button class="btn btn-secondary" onclick="resetTimer()">Reiniciar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL NOTAS -->
+    <div id="panel-notas" class="panel" role="tabpanel" aria-labelledby="nav-notas">
+      <h2>Notas Rápidas</h2>
+      <div class="box" id="notesBox" style="margin-bottom:1rem;">
+        <label for="searchNotes">Buscar notas</label>
+        <input id="searchNotes" type="text" placeholder="Buscar por título o contenido..." oninput="filterNotes()" aria-label="Buscar notas por título o contenido" />
+        <label for="sortNotes" style="margin-top:.75rem;">Ordenar:</label>
+        <select id="sortNotes" onchange="sortNotes()" aria-label="Ordenar notas">
+          <option value="date-desc" selected>Fecha: más recientes</option>
+          <option value="date-asc">Fecha: más antiguas</option>
+          <option value="title-asc">Título: A-Z</option>
+          <option value="title-desc">Título: Z-A</option>
+        </select>
+        <label for="noteTitle">Título</label>
+        <input id="noteTitle" placeholder="Título de la nota" />
+        <label for="noteText">Contenido</label>
+        <textarea id="noteText" rows="3" placeholder="Contenido..."></textarea>
+        <button class="btn" onclick="addNote()" style="margin-top:.75rem;">Guardar nota</button>
+      </div>
+      <div id="notesList" aria-label="Lista de notas"></div>
+    </div>
+
+    <!-- PANEL RESUMEN / IA / TTS -->
+    <div id="panel-resumen" class="panel" role="tabpanel" aria-labelledby="nav-resumen">
+      <h2>Resumidor / IA & TTS</h2>
+      <div class="box" id="aiResumenBox" style="margin-bottom:1rem;">
+        <label for="apiKey">API Key (OpenAI / Gemini) — opcional</label>
+        <input id="apiKey" type="password" placeholder="sk-..." oninput="saveApiKey(this.value)" />
+        <label for="resText">Texto a resumir</label>
+        <textarea id="resText" rows="4" placeholder="Pega tu texto aquí..."></textarea>
+        <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn" onclick="resumirIA()">Generar con IA</button>
+          <button class="btn btn-secondary" onclick="resumirLocal()">Resumen local</button>
+          <button class="btn btn-secondary" onclick="crearFlashcardsAuto()">Crear flashcards auto</button>
+        </div>
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.08);">
+          <label>Reproductor de audio (Web Speech API)</label>
+          <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.25rem;">
+            <button onclick="speakSummary()" class="btn btn-secondary" aria-label="Reproducir resumen en voz alta">▶ Reproducir</button>
+            <button onclick="pauseSpeech()" class="btn btn-secondary" aria-label="Pausar audio">⏸ Pausar</button>
+            <button onclick="stopSpeech()" class="btn btn-secondary" aria-label="Detener audio">⏹ Detener</button>
+            <label for="speechRate" style="margin-top:0;margin-left:.5rem;">Velocidad:</label>
+            <select id="speechRate" onchange="setSpeechRate(this.value)" aria-label="Velocidad de reproducción de audio">
+              <option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:.75rem;">
+          <label for="txtFile">Importar archivo .txt o .md para resumir / flashcards</label>
+          <input type="file" id="txtFile" accept=".txt,.md,.text/plain" onchange="importTextFile(this)" aria-label="Seleccionar archivo .txt o .md" />
+          <div id="dragDropZone" class="drag-zone" ondragover="event.preventDefault();this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="dropFile(event);this.classList.remove('dragover');" tabindex="0" aria-label="Arrastra archivo .txt o .md aquí">
+            <p style="margin:0;color:var(--text-muted);font-size:.9rem;">Arrastra un archivo .txt / .md aquí o haz clic para seleccionar</p>
+          </div>
+        </div>
+      </div>
+      <div id="resOutput" class="box" style="margin-top:1rem;" aria-live="polite"></div>
+      <button onclick="exportMarkdown()" class="btn btn-secondary" style="margin-top:.75rem;" aria-label="Exportar notas a Markdown">📄 Exportar .md</button>
+    </div>
+
+    <!-- PANEL PROGRESO -->
+    <div id="panel-progreso" class="panel" role="tabpanel" aria-labelledby="nav-progreso">
+      <h2>Dashboard de Progreso</h2>
+      <div class="grid-2" id="dashboardStatsGrid">
+        <div class="box"><h3>Sesiones hoy</h3><p id="stat-sesiones" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--primary);">0</p></div>
+        <div class="box"><h3>Racha (streak)</h3><p id="stat-streak" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--warn);">0 días</p></div>
+        <div class="box"><h3>Tiempo acumulado</h3><p id="stat-tiempo" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--primary);">0 min</p></div>
+        <div class="box"><h3>Tarjetas memorizadas</h3><p id="stat-cards" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--success);">0</p></div>
+        <div class="box"><h3>Precisión Quiz</h3><p id="stat-quiz" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--primary);">0%</p></div>
+        <div class="box"><h3>Pendientes hoy</h3><p id="stat-pendientes" aria-live="polite" style="font-size:2.5rem;font-weight:800;color:var(--danger);">0</p></div>
+      </div>
+      <button onclick="restartTour()" class="btn btn-secondary" style="margin-top:1.5rem;" aria-label="Reiniciar guía interactiva">Reiniciar guía</button>
+      <div class="box" style="margin-top:1.5rem;">
+        <table class="table" aria-label="Actividad reciente">
+          <thead><tr><th>Evento</th><th>Fecha</th></tr></thead>
+          <tbody id="activity-log"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <footer><p>© 2025 JStudy — SPA profesional, accesible y modular.</p></footer>
+
+  <button id="tourExitBtn" onclick="exitTour()" class="tour-exit" style="display:none;" aria-label="Salir de la guía" aria-expanded="false">Salir de la guía</button>
+
+  <script>
+  /* ===== STORAGE ===== */
+  const Storage = { load: k => JSON.parse(localStorage.getItem(k) || 'null'), save: (k, v) => localStorage.setItem(k, JSON.stringify(v)) };
+
+  /* ===== STATE ===== */
+  class AppData {
+    constructor() {
+      this.decks = Storage.load('ep_decks') || {};
+      this.notes = Storage.load('ep_notes') || [];
+      this.stats = Storage.load('ep_stats') || { sessions: 0, streak: 0, minutes: 0, cardsMastered: 0, quizCorrect: 0, quizTotal: 0, lastDate: '' };
+      this.apiKey = localStorage.getItem('ep_apikey') || '';
+      if (!this.decks.default) {
+        this.decks.default = [
+          { id: 1, front: '¿Qué es una función?', back: 'Un bloque de código reutilizable.', level: 2, dueDate: this.todayStr() },
+          { id: 2, front: 'Variable vs Constante', back: 'Variable cambia; constante (`const`) no se reasigna.', level: 2, dueDate: this.todayStr() },
+          { id: 3, front: 'CSS Grid', back: 'Layout bidimensional para filas y columnas.', level: 2, dueDate: this.todayStr() },
+        ];
+        Storage.save('ep_decks', this.decks);
+      }
+      for (const [name, cards] of Object.entries(this.decks)) cards.forEach(c => { if (!c.dueDate) c.dueDate = this.todayStr(); });
+      Storage.save('ep_decks', this.decks);
+    }
+    todayStr() { return new Date().toISOString().split('T')[0]; }
+    addLog(ev) { const log = Storage.load('ep_log') || []; log.unshift({ event: ev, date: new Date().toISOString() }); Storage.save('ep_log', log.slice(0, 50)); }
+    updateStats(minutes = 0) {
+      const today = this.todayStr(); const yesterday = new Date(new Date(new Date().setDate(new Date().getDate() - 1))).toISOString().split('T')[0];
+      if (this.stats.lastDate !== today) { this.stats.sessions = 1; this.stats.streak = (this.stats.lastDate === yesterday) ? this.stats.streak + 1 : 1; this.stats.lastDate = today; }
+      else { this.stats.sessions += 1; }
+      this.stats.minutes += minutes; Storage.save('ep_stats', this.stats);
+    }
+    cardsPendingToday() {
+      const today = this.todayStr(); let total = 0;
+      for (const cards of Object.values(this.decks)) total += cards.filter(c => c.dueDate <= today).length;
+      return total;
+    }
+  }
+  const app = new AppData();
+
+  /* ===== TOAST ===== */
+  function toast(msg, type='success'){
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; el.setAttribute('role', 'alert');
+    container.appendChild(el); setTimeout(() => { el.remove(); }, 3000);
+  }
+
+  /* ===== TABS ===== */
+  function showTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const btn = document.querySelector('.tab-btn[onclick*="'+name+'"]');
+    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
+    document.getElementById('panel-'+name).classList.add('active');
+    if (name === 'progreso') renderDashboard(); if (name === 'mazos') renderDeck(); if (name === 'notas') renderNotes();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ===== FLASHCARDS ===== */
+  function addCard() {
+    const deckName = document.getElementById('deckName').value.trim() || 'default';
+    const front = document.getElementById('cardFront').value.trim(); const back = document.getElementById('cardBack').value.trim();
+    if (!front || !back) return toast('Completa pregunta y respuesta', 'warn');
+    if (!app.decks[deckName]) app.decks[deckName] = [];
+    const today = new Date().toISOString().split('T')[0];
+    app.decks[deckName].push({ id: Date.now(), front, back, level: 1, dueDate: today });
+    Storage.save('ep_decks', app.decks); document.getElementById('cardFront').value = ''; document.getElementById('cardBack').value = '';
+    renderDeck(); populateQuizDeckSelect(); toast('Tarjeta agregada'); app.addLog('Tarjeta agregada');
+  }
+  function deleteCard(deckName, idx) { app.decks[deckName].splice(idx, 1); Storage.save('ep_decks', app.decks); renderDeck(); populateQuizDeckSelect(); updateQuizCountOptions(); toast('Tarjeta eliminada', 'warn'); app.addLog('Tarjeta eliminada'); }
+  function editDeckName(name) {
+    const newName = prompt('Nuevo nombre para el mazo:', name);
+    if (!newName || newName === name) return;
+    app.decks[newName] = app.decks[name]; delete app.decks[name];
+    Storage.save('ep_decks', app.decks); renderDeck(); populateQuizDeckSelect(); toast('Mazo renombrado'); app.addLog('Mazo renombrado');
+  }
+  function deleteDeck(name) {
+    if (!confirm('¿Eliminar mazo "' + name + '"?')) return;
+    delete app.decks[name]; Storage.save('ep_decks', app.decks); renderDeck(); populateQuizDeckSelect(); toast('Mazo eliminado', 'warn'); app.addLog('Mazo eliminado');
+  }
+  function editCard(deckName, idx) {
+    const c = app.decks[deckName][idx];
+    document.getElementById('deckName').value = deckName;
+    document.getElementById('cardFront').value = c.front;
+    document.getElementById('cardBack').value = c.back;
+    deleteCard(deckName, idx);
+    toast('Tarjeta cargada para editar');
+  }
+  function deleteIndividualCard(deckName, idx) {
+    deleteCard(deckName, idx); toast('Tarjeta individual eliminada', 'warn');
+  }
+  function renderDeck() {
+    const container = document.getElementById('deckDisplay');
+    const names = Object.keys(app.decks);
+    let pendingToday = app.cardsPendingToday(); document.getElementById('stat-pendientes').textContent = pendingToday;
+    if (!names.length) { container.innerHTML = '<div class="empty-state"><h3>Sin mazos</h3><p>Crea un mazo para empezar a estudiar con repetición espaciada.</p></div>'; return; }
+    let html = '<h3>Mazos</h3><table class="table"><thead><tr><th>Mazo</th><th>Tarjetas</th><th>Pendientes hoy</th><th>Acciones</th></tr></thead><tbody>';
+    names.forEach(name => {
+      const arr = app.decks[name]; const pending = arr.filter(c => c.dueDate <= new Date().toISOString().split('T')[0]).length;
+      html += `<tr><td><strong>${name}</strong></td><td>${arr.length}</td><td>${pending}</td>
+      <td style="display:flex;gap:.25rem;flex-wrap:wrap;">
+        <button onclick="startStudy('${name}')" class="btn btn-secondary" style="padding:.25rem .6rem;font-size:.75rem;">Estudiar</button>
+        <button onclick="editDeckName('${name}')" class="btn btn-secondary" style="padding:.25rem .6rem;font-size:.75rem;">Editar</button>
+        <button onclick="deleteDeck('${name}')" class="btn btn-secondary" style="padding:.25rem .6rem;font-size:.75rem;">Eliminar</button>
+      </td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  /* ======= STUDY NAVIGATION ======= */
+  let currentStudyDeck = null; let currentStudyIndex = 0;
+  function startStudy(name) {
+    const arr = app.decks[name];
+    if (!arr || !arr.length) return toast('Mazo vacío', 'warn');
+    currentStudyDeck = name; currentStudyIndex = 0; renderStudyCard(); toast('Estudio iniciado: ' + arr.length + ' tarjetas');
+  }
+  function renderStudyCard() {
+    const arr = app.decks[currentStudyDeck];
+    if (!arr || !arr.length) return;
+    if (currentStudyIndex >= arr.length) {
+      document.getElementById('studyArea').innerHTML = '<div class="box"><h3>¡Mazo completado!</h3><p>Has revisado todas las tarjetas de este mazo.</p><button onclick="startStudy(currentStudyDeck)" class="btn">Reiniciar mazo</button></div>';
+      return;
+    }
+    const c = arr[currentStudyIndex];
+    const area = document.getElementById('studyArea');
+    area.innerHTML = `
+      <div style="margin-bottom:.5rem;color:var(--text-muted);font-size:.85rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
+        <span>Tarjeta ${currentStudyIndex + 1} de ${arr.length}</span><span>Próximo repaso: ${c.dueDate}</span>
+      </div>
+      <div class="flash" onclick="this.classList.toggle('flipped')" tabindex="0" aria-label="Tarjeta de estudio" role="button">
+        <div class="flash-inner">
+          <div class="flash-front"><h3>${c.front}</h3></div>
+          <div class="flash-back"><p>${c.back}</p></div>
+        </div>
+      </div>
+      <div style="margin-top:1.5rem;display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+        <button onclick="studyLevel(-1)" class="btn btn-secondary" aria-label="Difícil, repetir hoy">Difícil (Hoy)</button>
+        <button onclick="studyLevel(0)" class="btn btn-secondary" aria-label="Bueno, sumar 3 días">Bueno (+3d)</button>
+        <button onclick="studyLevel(1)" class="btn btn-secondary" aria-label="Fácil, sumar 7 días">Fácil (+7d)</button>
+        <button onclick="studyNext()" class="btn btn-secondary" aria-label="Siguiente tarjeta">Siguiente →</button>
+        <button onclick="studyPrev()" class="btn btn-secondary" aria-label="Anterior tarjeta">← Anterior</button>
+      </div>`;
+  }
+  function studyLevel(delta) {
+    if (!currentStudyDeck) return; const arr = app.decks[currentStudyDeck]; if (currentStudyIndex >= arr.length) return;
+    const c = arr[currentStudyIndex]; const todayStr = new Date().toISOString().split('T')[0];
+    let nextDays = 1; if (delta === 1) nextDays = 7; else if (delta === 0) nextDays = 3; else nextDays = 1;
+    c.level = Math.max(1, Math.min(3, c.level + delta));
+    const nextDate = new Date(); nextDate.setDate(nextDate.getDate() + nextDays); c.dueDate = nextDate.toISOString().split('T')[0];
+    Storage.save('ep_decks', app.decks); currentStudyIndex = Math.min(currentStudyIndex + 1, arr.length); renderStudyCard();
+    app.stats.cardsMastered = Object.values(app.decks).reduce((sum, a) => sum + a.filter(x => x.level === 3).length, 0); Storage.save('ep_stats', app.stats);
+    toast('Nivel actualizado. Próximo: ' + c.dueDate); app.addLog('Leitner: nivel ' + c.level + ' (próximo: ' + c.dueDate + ')');
+  }
+  function studyNext() { if (!currentStudyDeck) return; currentStudyIndex = Math.min(currentStudyIndex + 1, app.decks[currentStudyDeck].length); renderStudyCard(); }
+  function studyPrev() { if (!currentStudyDeck) return; currentStudyIndex = Math.max(currentStudyIndex - 1, 0); renderStudyCard(); }
+
+  /* ======= QUIZ ADVANCED ======= */
+  function startQuiz(type='multiple', deckName='all', count=5, difficulty=2) {
+    let pool = []; const difficultyLevel = parseInt(difficulty) || 2; const questionCount = parseInt(count) || 5;
+    if (deckName === 'all') { pool = Object.values(app.decks).flat(); } else { pool = (app.decks[deckName] || []).slice(); }
+    if (!pool.length) return toast('No hay mazos con tarjetas', 'warn');
+    // Filter by difficulty level of cards (optional enhancement)
+    const filteredPool = difficultyLevel === 1 ? pool : difficultyLevel === 3 ? pool.filter(c => c.level >= 2) : pool;
+    const selected = filteredPool.slice().sort(() => Math.random() - 0.5).slice(0, Math.min(questionCount, filteredPool.length));
+    window.currentQuizType = type; window.currentQuizReview = [];
+    let html = `<h3>Quiz — ${type === 'multiple' ? 'Opción Múltiple' : type === 'true_false' ? 'Verdadero / Falso' : 'Respuesta Corta'}</h3>`;
+    html += `<p style="font-size:.85rem;color:var(--text-muted);margin-bottom:.75rem;">Mazo: ${deckName} | Preguntas: ${selected.length} | Dificultad: ${difficultyLevel}</p>`;
+    selected.forEach((c, i) => {
+      window.currentQuizReview.push({ id: i, front: c.front, back: c.back, correct: c.back, result: null, type: type });
+      if (type === 'multiple') {
+        const distractors = pool.filter(o => o.id !== c.id && o.id !== c.id).slice().sort(() => Math.random() - 0.5).slice(0, 3);
+        const options = [c.back, ...distractors.map(d => d.back)].sort(() => Math.random() - 0.5);
+        const optBtns = options.map((opt) => `<button onclick="quizSelect(${i}, '${encodeURIComponent(opt)}', '${encodeURIComponent(c.back)}')" class="btn btn-secondary">${opt}</button>`).join('');
+        html += `<div style="margin-bottom:1.5rem;" id="q-${i}">
+          <p class="quiz-q">Pregunta ${i + 1}: ${c.front}</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">${optBtns}</div>
+        </div>`;
+      } else if (type === 'true_false') {
+        html += `<div style="margin-bottom:1rem;" id="q-${i}">
+          <p class="quiz-q">Pregunta ${i + 1}: ${c.front}</p>
+          <p><strong>Afirmación:</strong> ${c.back}</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+            <button onclick="quizSelect(${i}, 'true', '${encodeURIComponent('true')}')" class="btn btn-secondary">Verdadero</button>
+            <button onclick="quizSelect(${i}, 'false', '${encodeURIComponent('false')}')" class="btn btn-secondary">Falso</button>
+          </div>
+        </div>`;
+      } else {
+        html += `<div style="margin-bottom:1.5rem;" id="q-${i}">
+          <p class="quiz-q">Pregunta ${i + 1}: ${c.front}</p>
+          <textarea id="short-${i}" rows="2" placeholder="Escribe tu respuesta..." onblur="quizShortAnswer(${i}, this.value)" aria-label="Respuesta corta para la pregunta ${i + 1}"></textarea>
+        </div>`;
+      }
+    });
+    document.getElementById('quizArea').innerHTML = html;
+    document.getElementById('quizResult').innerHTML = '';
+    toast('Quiz configurado: ' + type);
+  }
+  function quizSelect(qId, chosen, correct) {
+    const correctStr = decodeURIComponent(correct);
+    const chosenStr = decodeURIComponent(chosen);
+    if (!window.currentQuizReview) return;
+    const item = window.currentQuizReview[qId]; if (!item) return;
+    item.chosen = chosenStr; item.result = (chosenStr === correctStr);
+    document.getElementById('quizResult').innerHTML = `<p style="font-weight:700;color:${item.result ? 'var(--success)' : 'var(--danger)'};">Respuesta ${item.result ? 'correcta' : 'incorrecta'}.</p>`;
+    const answeredCount = window.currentQuizReview.filter(x => x.result !== null && x.result !== undefined).length;
+    if (answeredCount >= window.currentQuizReview.length) { setTimeout(showQuizResults, 400); }
+  }
+  function quizShortAnswer(qId, value) {
+    if (!window.currentQuizReview) return;
+    const item = window.currentQuizReview[qId]; if (!item) return;
+    const normalized = value.trim().toLowerCase();
+    const correctNormalized = item.correct.trim().toLowerCase();
+    item.chosen = value; item.result = normalized === correctNormalized || normalized.includes(correctNormalized) || correctNormalized.includes(normalized);
+    document.getElementById('quizResult').innerHTML = `<p style="font-weight:700;color:${item.result ? 'var(--success)' : 'var(--danger)'};">Respuesta ${item.result ? 'correcta' : 'incorrecta'}.</p>`;
+    const answeredCount = window.currentQuizReview.filter(x => x.result !== null && x.result !== undefined).length;
+    if (answeredCount >= window.currentQuizReview.length) { setTimeout(showQuizResults, 400); }
+  }
+  function showQuizResults() {
+    const items = window.currentQuizReview || [];
+    const correctCount = items.filter(x => x.result === true).length;
+    const total = items.length; const pct = total ? Math.round((correctCount / total) * 100) : 0;
+    app.stats.quizCorrect += correctCount; app.stats.quizTotal += total; Storage.save('ep_stats', app.stats); app.addLog('Quiz completado');
+    let review = '<h3>Resultados</h3>'; review += `<p>Puntaje: <strong>${correctCount}/${total}</strong> (${pct}%)</p>`;
+    review += '<ul style="list-style:none;padding:0;margin-top:1rem;">';
+    items.forEach((item, i) => {
+      const ok = item.result ? 'correcto' : 'incorrecto'; const color = item.result ? 'var(--success)' : 'var(--danger)';
+      review += `<li style="margin-bottom:1rem;padding:1rem;background:rgba(255,255,255,.03);border-radius:10px;border-left:4px solid ${color};">
+        <strong>Pregunta ${i + 1} (${item.type || 'quiz'}):</strong> ${item.front}<br>
+        <span style="font-size:.85rem;color:var(--text-muted);">Tu respuesta: <strong>${item.chosen || '(no respondida)'}</strong></span><br>
+        <span style="font-size:.85rem;color:${color};font-weight:600;">${ok} — Correcta: ${item.correct}</span>
+      </li>`;
+    });
+    review += '</ul>'; review += `<button onclick="startQuiz(window.currentQuizType || 'multiple')" class="btn" style="margin-top:1rem;">Reintentar quiz</button>`;
+    document.getElementById('quizResult').innerHTML = review;
+  }
+
+  /* ======= POMODORO ======= */
+  let timerInterval = null, timeLeft = 25 * 60, currentMode = 25, longInterval = 4, longSessionsDone = 0;
+  function workMinValue() { return parseInt(document.getElementById('workMin')?.value || 25); }
+  function shortMinValue() { return parseInt(document.getElementById('shortMin')?.value || 5); }
+  function longMinValue() { return parseInt(document.getElementById('longMin')?.value || 15); }
+  function applyPomodoroConfig() { toast('Configuración aplicada'); }
+  function setMode(min) { currentMode = min; timeLeft = min * 60; updateTimer(); toast('Modo: ' + min + 'm'); }
+  function startTimer() {
+    if (timerInterval) return;
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval); timerInterval = null; timeLeft = 0;
+        playAlarm();
+        notifyBrowser('Estudio Pro', '¡Tiempo completado!');
+        app.updateStats(currentMode);
+        longSessionsDone++;
+        if (longSessionsDone >= longInterval) { longSessionsDone = 0; toast('¡Descanso largo!'); app.addLog('Descanso largo tras ' + longInterval + ' sesiones'); }
+        else { app.addLog('Ciclo Pomodoro completado (' + currentMode + 'm)'); toast('Ciclo completado — +' + currentMode + ' minutos'); }
+      }
+      updateTimer();
+    }, 1000);
+    toast('Temporizador iniciado');
+  }
+  function resetTimer() { clearInterval(timerInterval); timerInterval = null; timeLeft = currentMode * 60; updateTimer(); }
+  function updateTimer() {
+    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const s = (timeLeft % 60).toString().padStart(2, '0');
+    document.getElementById('timer').textContent = m + ':' + s;
+  }
+  function playAlarm() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      // Harmonic chime (triangle + sine combo)
+      const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(660, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.3);
+      const osc2 = ctx.createOscillator(); osc2.type = 'sine'; osc2.frequency.setValueAtTime(1320, ctx.currentTime); osc2.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.3);
+      const gain = ctx.createGain(); gain.gain.setValueAtTime(0.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+      osc.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc2.start(); osc.stop(ctx.currentTime + 1); osc2.stop(ctx.currentTime + 1);
+    } catch (e) { console.warn('Audio alarm error', e); }
+  }
+  function notifyBrowser(title, msg) {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') new Notification(title, { body: msg });
+    else if (Notification.permission !== 'denied') Notification.requestPermission().then(p => { if (p === 'granted') new Notification(title, { body: msg }); });
+  }
+  updateTimer();
+
+  /* ======= NOTAS ======= */
+  function addNote() {
+    const title = document.getElementById('noteTitle').value.trim() || 'Sin título';
+    const text = document.getElementById('noteText').value.trim();
+    if (!text) return toast('Escribe contenido', 'warn');
+    app.notes.push({ id: Date.now(), title, text, date: new Date().toISOString() });
+    Storage.save('ep_notes', app.notes); document.getElementById('noteTitle').value = ''; document.getElementById('noteText').value = '';
+    renderNotes(); toast('Nota guardada'); app.addLog('Nota guardada');
+  }
+  function editNote(id) {
+    const note = app.notes.find(n => n.id === id); if (!note) return;
+    document.getElementById('noteTitle').value = note.title; document.getElementById('noteText').value = note.text; deleteNote(id); toast('Nota cargada para editar');
+  }
+  function deleteNote(id) { app.notes = app.notes.filter(n => n.id !== id); Storage.save('ep_notes', app.notes); renderNotes(); toast('Nota eliminada', 'warn'); }
+  function filterNotes() {
+    const query = document.getElementById('searchNotes').value.toLowerCase().trim();
+    const sortVal = document.getElementById('sortNotes').value;
+    renderNotes(query, sortVal);
+  }
+  function sortNotes() { renderNotes(); }
+  function renderNotes(query = '', sortVal = 'date-desc') {
+    const list = document.getElementById('notesList');
+    if (!app.notes.length) { list.innerHTML = '<div class="empty-state"><h3>Sin notas</h3><p>Crea tu primera nota para empezar.</p></div>'; return; }
+    let filtered = app.notes.filter(n => n.title.toLowerCase().includes(query) || n.text.toLowerCase().includes(query));
+    if (sortVal === 'date-desc') filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    else if (sortVal === 'date-asc') filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+    else if (sortVal === 'title-asc') filtered.sort((a, b) => a.title.localeCompare(b.title));
+    else if (sortVal === 'title-desc') filtered.sort((a, b) => b.title.localeCompare(a.title));
+    let html = '<h3>Notas guardadas' + (filtered.length ? ` (${filtered.length})` : '') + '</h3><ul style="list-style:none;padding:0;">';
+    filtered.forEach(n => {
+      html += `<li style="margin-bottom:.75rem;padding:1rem;background:rgba(11,19,37,0.8);border-radius:12px;border:1px solid rgba(255,255,255,.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap;">
+          <strong>${n.title}</strong>
+          <span style="font-size:.75rem;color:var(--text-muted);">${new Date(n.date).toLocaleString()}</span>
+        </div>
+        <p style="margin:.5rem 0;color:var(--text-muted);">${n.text}</p>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button onclick="editNote(${n.id})" class="btn btn-secondary" style="padding:.25rem .75rem;font-size:.75rem;">Editar</button>
+          <button onclick="deleteNote(${n.id})" class="btn btn-secondary" style="padding:.25rem .75rem;font-size:.75rem;">Eliminar</button>
+        </div>
+      </li>`;
+    });
+    html += '</ul>'; list.innerHTML = html;
+  }
+
+  /* ======= RESUMEN / IA / TTS ======= */
+  function saveApiKey(val) { localStorage.setItem('ep_apikey', val); app.apiKey = val; }
+  function resumirLocal() {
+    const t = document.getElementById('resText').value; const out = document.getElementById('resOutput');
+    if (!t) { out.innerHTML = '<div class="empty-state"><h3>Sin texto</h3><p>Ingresa contenido para generar un resumen.</p></div>'; return; }
+    const words = t.split(/\s+/).filter(w => w.length > 4);
+    const keywords = [...new Set(words)].slice(0, 12).join(', ');
+    out.innerHTML = `<h4 style="margin-bottom:.5rem;color:var(--primary);">Resumen local (palabras clave)</h4>
+      <p style="line-height:1.7;"><strong>Palabras clave extraídas:</strong> ${keywords}</p>
+      <p style="margin-top:.5rem;color:var(--text-muted);font-size:.9rem;">Nota: para un análisis avanzado, agrega una API Key.</p>`;
+  }
+  async function resumirIA() {
+    const t = document.getElementById('resText').value; const out = document.getElementById('resOutput');
+    if (!t) { out.innerHTML = '<div class="empty-state"><h3>Sin texto</h3><p>Ingresa contenido para generar un resumen.</p></div>'; return; }
+    out.innerHTML = '<p>Generando con IA (servicio gratuito sin key)...</p>';
+    try {
+      // Intento con Hugging Face (público, sin token obligatorio para modelos pequeños)
+      const res = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: t.slice(0, 1000), parameters: { max_length: 150, do_sample: false } })
+      });
+      if (!res.ok) throw new Error('Servicio gratuito no disponible (status ' + res.status + ')');
+      const data = await res.json();
+      const summary = (Array.isArray(data) && data[0] && data[0].summary_text) ? data[0].summary_text : (data.summary_text || data.generated_text || 'Resumen recibido.');
+      out.innerHTML = `<h4 style="margin-bottom:.5rem;color:var(--primary);">Resumen con IA (gratis)</h4><p style="line-height:1.7;">${summary}</p>`;
+      toast('Resumen generado con servicio gratuito'); app.addLog('Resumen IA (gratis)');
+    } catch (e) {
+      resumirLocalMejorado();
+      out.insertAdjacentHTML('beforeend', `<p style="color:var(--warn);margin-top:.75rem;font-weight:600;">Servicio gratuito temporalmente no disponible (${e.message}). Se usó resumen local avanzado.</p>`);
+    }
+  }
+  function resumirLocalMejorado() {
+    const t = document.getElementById('resText').value; const out = document.getElementById('resOutput');
+    if (!t) return;
+    const sentences = t.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 20 && s.split(' ').length > 3);
+    const selected = sentences.slice(0, 4).join('. ') + (sentences.length ? '.' : '');
+    const words = t.split(/\s+/).filter(w => w.length > 4);
+    const keywords = [...new Set(words)].slice(0, 15).join(', ');
+    out.innerHTML = `<h4 style="margin-bottom:.5rem;color:var(--primary);">Resumen local avanzado</h4>
+      <p style="line-height:1.7;font-weight:600;color:var(--text);">${selected || 'Texto original resumido por extracción.'}</p>
+      <p style="margin-top:.75rem;color:var(--text-muted);font-size:.9rem;"><strong>Palabras clave:</strong> ${keywords}</p>
+      <p style="font-size:.8rem;color:var(--text-muted);">Nota: para análisis con IA externa se requiere API Key.</p>`;
+  }
+  function crearFlashcardsAuto() {
+    const t = document.getElementById('resText').value; const out = document.getElementById('resOutput');
+    if (!t) return out.innerHTML = '<div class="empty-state"><h3>Sin texto</h3><p>Ingresa contenido primero.</p></div>';
+    const sentences = t.split('.').map(s => s.trim()).filter(s => s.length > 10);
+    const cards = sentences.slice(0, 5).map(s => ({ id: Date.now() + Math.random(), front: s.slice(0, 80) || s, back: s.slice(80) || s }));
+    const name = 'Auto-' + new Date().toISOString().slice(0, 10);
+    if (!app.decks[name]) app.decks[name] = [];
+    cards.forEach(c => app.decks[name].push(c)); Storage.save('ep_decks', app.decks);
+    out.innerHTML = `<p style="font-weight:700;color:var(--primary);">Creadas ${cards.length} flashcards en mazo "${name}".</p>`;
+    toast('Flashcards creadas'); app.addLog('Flashcards creadas automáticamente');
+  }
+
+  /* ======= FILE IMPORTER ======= */
+  function importTextFile(input) {
+    const file = input.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => { const text = ev.target.result; toast('Archivo cargado: ' + file.name); document.getElementById('resText').value = text; };
+    reader.readAsText(file);
+  }
+  function dropFile(e) {
+    e.preventDefault(); const files = e.dataTransfer.files;
+    if (files.length > 0) { document.getElementById('txtFile').files = files; importTextFile(document.getElementById('txtFile')); }
+  }
+
+  /* ======= TTS ======= */
+  let speechUtterance = null; let synthesis = window.speechSynthesis || null;
+  function setSpeechRate(val) { if (speechUtterance) speechUtterance.rate = parseFloat(val); }
+  function speakSummary() {
+    const text = document.getElementById('resOutput').innerText || document.getElementById('resText').value;
+    if (!text || !text.trim()) return toast('No hay texto para leer', 'warn');
+    if (!synthesis) return toast('Speech API no disponible', 'warn');
+    stopSpeech();
+    speechUtterance = new SpeechSynthesisUtterance(text); speechUtterance.lang = 'es-ES';
+    speechUtterance.rate = parseFloat(document.getElementById('speechRate').value); speechUtterance.pitch = 1;
+    synthesis.speak(speechUtterance); toast('Reproduciendo audio...'); app.addLog('Audio reproducido');
+  }
+  function pauseSpeech() { if (synthesis && synthesis.speaking) { synthesis.pause(); toast('Audio pausado'); } }
+  function stopSpeech() { if (synthesis) { synthesis.cancel(); speechUtterance = null; toast('Audio detenido'); } }
+
+  /* ======= EXPORT MD ======= */
+  function exportMarkdown() {
+    const notes = app.notes; let md = '# Notas de Estudio JStudy\n\n';
+    notes.forEach(n => { md += `## ${n.title}\n`; md += `Fecha: ${new Date(n.date).toLocaleString()}\n\n`; md += `${n.text}\n\n`; md += '---\n\n'; });
+    const blob = new Blob([md], { type: 'text/markdown' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'estudio-pro-notas.md'; a.click(); toast('Exportado Markdown (.md)');
+  }
+
+  /* ======= PROGRESO ======= */
+  function renderDashboard() {
+    document.getElementById('stat-sesiones').textContent = app.stats.sessions;
+    document.getElementById('stat-streak').textContent = app.stats.streak + ' días';
+    document.getElementById('stat-tiempo').textContent = app.stats.minutes + ' min';
+    document.getElementById('stat-cards').textContent = app.stats.cardsMastered;
+    const pct = app.stats.quizTotal > 0 ? Math.round((app.stats.quizCorrect / app.stats.quizTotal) * 100) : 0;
+    document.getElementById('stat-quiz').textContent = pct + '%';
+    document.getElementById('stat-notas').textContent = app.notes.length;
+    document.getElementById('stat-pendientes').textContent = app.cardsPendingToday();
+    document.getElementById('streak-sidebar').textContent = 'Racha: ' + app.stats.streak + ' días';
+    document.getElementById('minutes-sidebar').textContent = 'Hoy: ' + app.stats.minutes + ' min';
+    const log = Storage.load('ep_log') || [];
+    const tbody = document.getElementById('activity-log');
+    tbody.innerHTML = log.map(l => `<tr><td>${l.event}</td><td>${new Date(l.date).toLocaleString()}</td></tr>`).join('');
+  }
+
+  /* ======= TOUR / ONBOARDING ======= */
+  const tourSteps = [
+    { selector: '#mainTabsNav', title: 'Navegación', text: 'Usa estas pestañas para moverte entre funciones.' },
+    { selector: '#deckFormBox', title: 'Mazos', text: 'Crea mazos con repetición espaciada (Leitner: Difícil=Hoy, Bueno=+3d, Fácil=+7d).' },
+    { selector: '#pomodoroBox', title: 'Pomodoro', text: 'Temporiza sesiones con descanso inteligente.' },
+    { selector: '#notesBox', title: 'Notas', text: 'Guarda notas con fecha/hora persistentes.' },
+    { selector: '#aiResumenBox', title: 'Resumidor / IA', text: 'Genera resúmenes, crea flashcards automáticas, importa archivos, escucha con TTS.' },
+    { selector: '#panel-progreso', title: 'Dashboard', text: 'Revisa sesiones, racha, tiempo acumulado, precisión, notas y pendencias hoy.' },
+  ];
+  let tourIndex = 0;
+  function startTour() {
+    document.getElementById('welcomeOverlay').classList.add('hidden');
+    localStorage.setItem('ep_tour_started', 'true');
+    document.getElementById('spotlightOverlay').style.display = 'block';
+    document.getElementById('tourExitBtn').style.display = 'inline-block';
+    showTourStep(0);
+  }
+  function skipWelcome() {
+    document.getElementById('welcomeOverlay').classList.add('hidden');
+    localStorage.setItem('ep_tour_completed', 'true');
+  }
+  function getPanelForSelector(sel) {
+    if (sel === '#mainTabsNav' || sel === '.tabs') return 'mazos';
+    if (sel === '#deckFormBox' || sel === '#deckName' || sel === '#studyArea') return 'mazos';
+    if (sel === '#pomodoroBox' || sel === '#timer') return 'pomodoro';
+    if (sel === '#notesBox' || sel === '#noteTitle') return 'notas';
+    if (sel === '#aiResumenBox' || sel === '#resText') return 'resumen';
+    if (sel === '#panel-progreso' || sel === '#dashboardStatsGrid') return 'progreso';
+    return null;
+  }
+  function showTourStep(i) {
+    if (i >= tourSteps.length) { exitTour(); return; }
+    tourIndex = i;
+    const step = tourSteps[i];
+    const panelName = getPanelForSelector(step.selector);
+    if (panelName) { showTab(panelName); }
+    setTimeout(() => {
+      const el = document.querySelector(step.selector);
+      if (!el) {
+        setTimeout(() => {
+          const elRetry = document.querySelector(step.selector);
+          if (elRetry) {
+            elRetry.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => {
+              const rectRetry = elRetry.getBoundingClientRect();
+              const overlayRetry = document.getElementById('spotlightOverlay');
+              overlayRetry.style.display = 'block'; overlayRetry.style.background = 'none';
+              let spotRetry = document.getElementById('spotlightRect');
+              if (!spotRetry) {
+                spotRetry = document.createElement('div'); spotRetry.id = 'spotlightRect';
+                spotRetry.style.position = 'fixed'; spotRetry.style.zIndex = '2499'; spotRetry.style.pointerEvents = 'none';
+                spotRetry.style.border = '2px solid rgba(0,240,255,0.6)'; spotRetry.style.borderRadius = '16px';
+                spotRetry.style.boxShadow = '0 0 0 9999px rgba(4,8,18,0.82), 0 0 40px rgba(0,240,255,0.15)';
+                spotRetry.style.transition = 'all .35s ease'; document.body.appendChild(spotRetry);
+              }
+              spotRetry.style.width = rectRetry.width + 'px'; spotRetry.style.height = rectRetry.height + 'px';
+              spotRetry.style.left = rectRetry.left + 'px'; spotRetry.style.top = rectRetry.top + 'px'; spotRetry.style.display = 'block';
+              const oldBubbleRetry = document.getElementById('tourBubble'); if (oldBubbleRetry) oldBubbleRetry.remove();
+              const bubbleRetry = document.createElement('div'); bubbleRetry.id = 'tourBubble'; bubbleRetry.className = 'tour-bubble';
+              const isFirstRetry = i === 0; const isLastRetry = i === tourSteps.length - 1;
+              bubbleRetry.innerHTML = `<h4>${step.title}</h4><p>${step.text}</p>
+                <div style="margin-top:1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+                  <button onclick="prevTourStep()" ${isFirstRetry ? 'disabled' : ''} class="btn btn-secondary" style="padding:.4rem .8rem;font-size:.8rem;opacity:${isFirstRetry ? '0.4' : '1'};cursor:${isFirstRetry ? 'default' : 'pointer'};">← Anterior</button>
+                  <span style="font-size:.8rem;color:var(--text-muted);font-weight:600;">Paso ${i + 1} de ${tourSteps.length}</span>
+                  <button onclick="nextTourStep()" class="btn btn-secondary" style="padding:.4rem .8rem;font-size:.8rem;">${isLastRetry ? 'Finalizar' : 'Siguiente →'}</button>
+                </div>`;
+              document.body.appendChild(bubbleRetry); positionBubble(bubbleRetry, rectRetry);
+            }, 250);
+          } else { showTourStep(i + 1); }
+        }, 300);
+        return;
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        const rect = el.getBoundingClientRect();
+        let spot = document.getElementById('spotlightRect');
+        if (!spot) { spot = document.createElement('div'); spot.id = 'spotlightRect'; spot.style.position = 'fixed'; spot.style.zIndex = '2499'; spot.style.pointerEvents = 'none'; spot.style.border = '2px solid rgba(0,240,255,0.6)'; spot.style.borderRadius = '16px'; spot.style.boxShadow = '0 0 0 9999px rgba(4,8,18,0.82), 0 0 40px rgba(0,240,255,0.15)'; spot.style.transition = 'all .35s ease'; document.body.appendChild(spot); }
+        spot.style.width = rect.width + 'px'; spot.style.height = rect.height + 'px'; spot.style.left = rect.left + 'px'; spot.style.top = rect.top + 'px'; spot.style.display = 'block';
+        document.getElementById('spotlightOverlay').style.display = 'block';
+        const oldBubble = document.getElementById('tourBubble'); if (oldBubble) oldBubble.remove();
+        const bubble = document.createElement('div'); bubble.id = 'tourBubble'; bubble.className = 'tour-bubble';
+        const isFirst = i === 0; const isLast = i === tourSteps.length - 1;
+        bubble.innerHTML = `<h4>${step.title}</h4><p>${step.text}</p>
+          <div style="margin-top:1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;">
+            <button onclick="prevTourStep()" ${isFirst ? 'disabled' : ''} class="btn btn-secondary" style="padding:.4rem .8rem;font-size:.8rem;opacity:${isFirst ? '0.4' : '1'};cursor:${isFirst ? 'default' : 'pointer'};">← Anterior</button>
+            <span style="font-size:.8rem;color:var(--text-muted);font-weight:600;">Paso ${i + 1} de ${tourSteps.length}</span>
+            <button onclick="nextTourStep()" class="btn btn-secondary" style="padding:.4rem .8rem;font-size:.8rem;">${isLast ? 'Finalizar' : 'Siguiente →'}</button>
+          </div>`;
+        document.body.appendChild(bubble); positionBubble(bubble, rect);
+      }, 250);
+    }, 150);
+  }
+  function positionBubble(bubble, rect) {
+    const gap = 20; const bw = 360; const bh = 160; const iw = window.innerWidth; const ih = window.innerHeight;
+    const candidates = [
+      { left: rect.left + rect.width / 2 - bw / 2, top: rect.bottom + gap, fits: () => (rect.bottom + gap + bh <= ih - 16) },
+      { left: rect.left + rect.width / 2 - bw / 2, top: rect.top - bh - gap, fits: () => (rect.top - gap - bh >= 16) },
+      { left: rect.right + gap, top: rect.top + rect.height / 2 - bh / 2, fits: () => (rect.right + gap + bw <= iw - 16 && rect.top + rect.height / 2 - bh / 2 >= 16) },
+      { left: rect.left - bw - gap, top: rect.top + rect.height / 2 - bh / 2, fits: () => (rect.left - gap - bw >= 16 && rect.top + rect.height / 2 - bh / 2 >= 16) },
+    ];
+    let chosen = candidates.find(c => c.fits());
+    let left = chosen ? chosen.left : Math.max(16, (iw - bw) / 2);
+    let top = chosen ? chosen.top : Math.max(20, ih - bh - 20);
+    left = Math.max(16, Math.min(left, iw - bw - 16)); top = Math.max(16, Math.min(top, ih - bh - 16));
+    bubble.style.position = 'fixed'; bubble.style.zIndex = '2600'; bubble.style.left = left + 'px'; bubble.style.top = top + 'px';
+  }
+  function nextTourStep() { showTourStep(tourIndex + 1); }
+  function prevTourStep() { if (tourIndex > 0) showTourStep(tourIndex - 1); }
+  function exitTour() {
+    document.getElementById('spotlightOverlay').style.display = 'none';
+    document.getElementById('tourExitBtn').style.display = 'none';
+    const old = document.getElementById('tourBubble'); if (old) old.remove();
+    const spot = document.getElementById('spotlightRect'); if (spot) spot.remove();
+    localStorage.setItem('ep_tour_completed', 'true');
+    toast('Guía finalizada');
+  }
+  
+  function restartTour() {
+    localStorage.removeItem('ep_tour_completed'); localStorage.removeItem('ep_tour_started');
+    setTimeout(() => startTour(), 200);
+  }
+  
+
+  window.addEventListener('resize', () => {
+    if (document.getElementById('tourBubble') && window.tourIndex !== undefined) {
+      const step = tourSteps[window.tourIndex]; if (step) {
+        const el = document.querySelector(step.selector); if (el) { const rect = el.getBoundingClientRect(); const bubble = document.getElementById('tourBubble'); positionBubble(bubble, rect); }
+      }
+    }
+  });
+
+  function updateQuizCountOptions() {
+  const deckSelect = document.getElementById('quizDeckSelect');
+  const countSelect = document.getElementById('quizCount');
+  if (!deckSelect || !countSelect) return;
+  const deckName = deckSelect.value;
+  let maxCards = 5;
+  if (deckName === 'all') {
+    maxCards = Object.values(app.decks).reduce((sum, arr) => sum + arr.length, 0);
+  } else {
+    maxCards = (app.decks[deckName] ? app.decks[deckName].length : 0) || 5;
+  }
+  if (maxCards < 1) maxCards = 1;
+  countSelect.innerHTML = '';
+  for (let i = 1; i <= maxCards; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    if (i === Math.min(5, maxCards)) opt.selected = true;
+    countSelect.appendChild(opt);
+  }
+}
+
+function populateQuizDeckSelect() {
+  const select = document.getElementById('quizDeckSelect');
+  if (!select) return;
+  select.innerHTML = '<option value="all">Todos los mazos</option>';
+  Object.keys(app.decks).forEach(name => {
+    const opt = document.createElement('option'); opt.value = name; opt.textContent = name; select.appendChild(opt);
+  });
+  updateQuizCountOptions();
+}
+function triggerQuiz(type) {
+  const deck = document.getElementById('quizDeckSelect').value;
+  const count = document.getElementById('quizCount').value;
+  const diff = document.getElementById('quizDifficultySelect').value;
+  startQuiz(type, deck, count, diff);
+}
+function startQuizConfigured(type) { triggerQuiz(type); }
+
+/* ======= INIT ======= */
+  window.addEventListener('load', () => {
+    renderDeck(); renderNotes(); renderDashboard(); populateQuizDeckSelect(); updateQuizCountOptions(); 
+    document.getElementById('apiKey').value = localStorage.getItem('ep_apikey') || '';
+    document.getElementById('speechRate').value = '1';
+    const deckNames = Object.keys(app.decks);
+    if (!deckNames.length || (deckNames.length === 1 && app.decks.default && app.decks.default.length === 0)) {
+      document.getElementById('deckDisplay').innerHTML = '<div class="empty-state"><h3>Sin mazos</h3><p>Crea un mazo para empezar a estudiar con repetición espaciada.</p></div>';
+    }
+    if (localStorage.getItem('ep_tour_completed') === 'true') {
+      document.getElementById('welcomeOverlay').classList.add('hidden');
+    }
+  });
+    populateQuizDeckSelect(); updateQuizCountOptions();
+</script>
+  </body>
+  </html>
