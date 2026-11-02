@@ -36,6 +36,9 @@ function renderLoginUI() {
             <button type="submit" class="btn" style="flex:1;">Entrar</button>
             <button type="button" onclick="switchAuthMode()" class="btn btn-secondary" style="flex:1;">Registrarme</button>
           </div>
+        <div id="authToggleLink" style="margin-top:1rem;text-align:center;font-size:.85rem;color:var(--text-muted);">
+            <a href="#" onclick="event.preventDefault(); window.switchAuthMode();" style="color:var(--primary);text-decoration:none;font-weight:600;">¿Ya tienes cuenta? Inicia sesión aquí</a>
+          </div>
         </form>
         <div id="authError" style="margin-top:1rem;color:var(--danger);font-weight:600;font-size:.85rem;min-height:1.2rem;"></div>
       </div>
@@ -56,13 +59,17 @@ window.switchAuthMode = () => {
   const label = document.getElementById('authModeLabel');
   if (label) label.textContent = window.authMode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta';
   const submitBtn = document.querySelector('#authForm button[type="submit"]');
-  if (submitBtn) submitBtn.textContent = window.authMode === 'login' ? 'Entrar' : 'Crear Cuenta';
+  if (submitBtn) submitBtn.textContent = window.authMode === 'login' ? 'Entrar' : 'Registrarse';
   // Show/hide display name field for registration
   const displayNameGroup = document.getElementById('authDisplayNameGroup');
   if (displayNameGroup) displayNameGroup.style.display = window.authMode === 'register' ? 'block' : 'none';
-  // Change email input placeholder
-  const emailInput = document.getElementById('authEmail');
-  if (emailInput) emailInput.placeholder = window.authMode === 'register' ? 'tu@email.com' : 'tu@email.com';
+  // Toggle link text based on mode
+  const toggleLink = document.getElementById('authToggleLink');
+  if (toggleLink) {
+    toggleLink.innerHTML = window.authMode === 'register'
+      ? `<a href="#" onclick="event.preventDefault(); window.switchAuthMode();" style="color:var(--primary);text-decoration:none;font-weight:600;">¿Ya tienes cuenta? Inicia sesión aquí</a>`
+      : `<a href="#" onclick="event.preventDefault(); window.switchAuthMode();" style="color:var(--primary);text-decoration:none;font-weight:600;">¿No tienes cuenta? Regístrate aquí</a>`;
+  }
 };
 
 window.handleAuth = async () => {

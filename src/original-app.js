@@ -38,8 +38,14 @@
   /* ===== TOAST ===== */
   function toast(msg, type='success'){
     const container = document.getElementById('toastContainer');
-    const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; el.setAttribute('role', 'alert');
-    container.appendChild(el); setTimeout(() => { el.remove(); }, 3000);
+    const icons = { success: '✓', error: '✕', warn: '⚠', info: 'ℹ' };
+    const el = document.createElement('div'); 
+    el.className = 'toast ' + type; 
+    el.innerHTML = `<span style="font-size:1.1rem;margin-right:.5rem;display:inline-block;">${icons[type] || icons.info}</span><span>${msg}</span>`; 
+    el.setAttribute('role', 'alert');
+    el.style.animation = 'slideIn .35s ease, fadeOut .3s ease 2.7s forwards';
+    container.appendChild(el); 
+    setTimeout(() => { el.remove(); }, 3000);
   }
 
   /* ===== TABS ===== */
@@ -226,9 +232,20 @@
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;">${optBtns}</div>
         </div>`;
       } else if (type === 'true_false') {
+        // Random true/false with balanced distribution and coherent false statements
+        const isTrue = Math.random() > 0.5;
+        const falseBack = pool.filter(o => o.id !== c.id).sort(() => Math.random() - 0.5)[0]?.back || c.back;
+        const statement = isTrue ? c.back : falseBack;
+        const correctAnswer = isTrue ? 'true' : 'false';
+        // Update review data after initial push
+        window.currentQuizReview[i] = { 
+          id: i, front: c.front, back: c.back, 
+          correct: correctAnswer, result: null, type: type, 
+          statement: statement, isTrue: isTrue 
+        };
         html += `<div style="margin-bottom:1rem;" id="q-${i}">
           <p class="quiz-q">Pregunta ${i + 1}: ${c.front}</p>
-          <p><strong>Afirmación:</strong> ${c.back}</p>
+          <p><strong>Afirmación:</strong> ${statement}</p>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
             <button onclick="quizSelect(${i}, 'true', '${encodeURIComponent('true')}')" class="btn btn-secondary">Verdadero</button>
             <button onclick="quizSelect(${i}, 'false', '${encodeURIComponent('false')}')" class="btn btn-secondary">Falso</button>

@@ -91,6 +91,7 @@ label{font-weight:600;font-size:.85rem;display:block;margin-top:.75rem;color:var
 .toast.warn{border-color:rgba(255,170,0,.35);color:#ffcc66}
 .toast.error{border-color:rgba(255,85,85,.35);color:#ff9999}
 @keyframes slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
 
 /* EMPTY */
 .empty-state{text-align:center;padding:4rem 1.5rem;color:var(--text-muted);animation:fadeIn .5s ease}
